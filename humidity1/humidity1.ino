@@ -1,6 +1,7 @@
 static const int VCCPin = 8;
 static const int analogPin = 1;
 static const int R = 15000;
+static const float Vref = 5.0 * 15 / (15 + 51);
 
 static float a = 2.76366367;
 static float b = -32.40924966;
@@ -44,7 +45,7 @@ float GetHumidity(void) {
   
   val = analogRead(analogPin);
   float volt = val * 5.0 / 1024;
-  float res = log10(R / (5 / volt - 1) / 1000);
+  float res = log10(R / (Vref / volt - 1) / 1000);
   float hum = a * res*res + b * res + c;
   return (hum);
 }
