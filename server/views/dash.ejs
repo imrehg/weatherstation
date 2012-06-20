@@ -70,6 +70,7 @@ $(function () {
     socket.on('humidity', function (data) {
     	var hum = data.value;
         $("#value").html(hum+"%");
+	$('title').text(hum+"%");
     	plot.setData([ storeData(hum) ]);
         plot.draw();
     	zz++;
