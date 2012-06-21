@@ -21,7 +21,7 @@ static unsigned long microwait = 500;
 unsigned long deltat;
 
 void setup() {
-  Serial.begin(19200);
+  Serial.begin(115200);
   Serial.println(F("Humidity sensor"));
   pinMode(VCCPin, OUTPUT);
   t = micros();
