@@ -2,10 +2,23 @@ var express = require('express')
   , util = require('util')
   , ejs = require('ejs')
   , io = require('socket.io')
+  , mongoose = require('mongoose')
 ;
 
 var SerialPort = require('serialport2').SerialPort;
 var port = new SerialPort();
+
+// Database related setup
+var db = 'mongoose://'+process.env.MONGO_URL+'/'+process.env.MONGO_DB; 
+mongoose.connect(db);
+var Schema = mongoose.Schema
+  , ObjectId = Schema.ObjectId;
+var Reading = new Schema({
+    date : { type: Date, default: Date.now }
+  , humidity : Number
+});
+var ReadingModel =  mongoose.model('Reading', Reading);
+// database setup end
 
 var totaldata = '';
 var humidity = 0;
@@ -14,7 +27,7 @@ port.on('error', function(err) {
 });
 
 port.open('/dev/ttyUSB0', {
-  baudRate: 19200,
+  baudRate: 115200,
   dataBits: 8,
   parity: 'none',
   stopBits: 1
@@ -37,15 +50,25 @@ sio.sockets.on('connection', function (socket) {
     console.log('A socket connected!');
 });
 
+function handleReading(data) {
+    var humidity = data.humidity;
+    var reading = new ReadingModel(data);
+    sio.sockets.emit('humidity', { value: humidity });
+    reading.save()
+}
+
 port.on('data', function(data) {
     totaldata += data;
     // console.log(totaldata);
     if (totaldata.charAt(totaldata.length-1) == '\n') {
 	try {
-	    humidity = parseFloat(totaldata);
-	    // console.log(humidity);
-	    sio.sockets.emit('humidity', { value: humidity });
-	    console.log(humidity);
+	    var time = Date.now();
+	    var humidity = parseFloat(totaldata);
+	    if (!isNaN(humidity)) {
+		var reading = { humidity : humidity, date : time};
+		console.log(reading);
+		handleReading(reading);
+	    }
 	    totaldata = '';
 	} catch(err) {
 	    console.log(err);
