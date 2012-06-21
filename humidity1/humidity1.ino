@@ -1,3 +1,5 @@
+#include <limits.h>  // For ULONG_MAX
+
 static const int VCCPin = 8;
 static const int analogPin = 0;
 static const float Re = 50.3; // kOhm
@@ -15,7 +17,8 @@ int count = 0;
 unsigned long t;
 boolean level = LOW;
 unsigned long nowt;
-static int microwait = 500;
+static unsigned long microwait = 500;
+unsigned long deltat;
 
 void setup() {
   Serial.begin(19200);
@@ -27,10 +30,13 @@ void setup() {
 void loop() {
 
   nowt = micros();
-  if (nowt < t) { 
-      t = 0;
+  if (nowt >= t) {
+     deltat = nowt - t;
+  } else {
+     // Taking care of micros overflow that should happen every 70 minutes or so
+     deltat = ULONG_MAX - t + nowt;
   }
-  if ((nowt - t) > microwait) {
+  if (deltat > microwait) {
      digitalWrite(VCCPin, level);
      if (level == HIGH) {
           if (count == 200) {
