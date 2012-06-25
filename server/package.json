@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "ejs":       "0.7.2"
-  , "express":   "2.5.9"
+  , "express":   "2.5.10"
   , "socket.io": "0.9.5"
   , "serialport2": "0.0.5"
   , "mongoose": "2.7.0"
