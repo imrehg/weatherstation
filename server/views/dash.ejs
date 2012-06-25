@@ -58,10 +58,11 @@ $(function () {
     }
 
 
-    var value = $("#value");
+    var value = document.getElementById('value');
     socket.on('humidity', function (data) {
     	var hum = data.value;
-        value.html(hum+"%");
+        value.innerHTML = hum+"%";
+        document.title = hum+"%";
     	plot.setData([ storeData(hum) ]);
         plot.draw();
     });
