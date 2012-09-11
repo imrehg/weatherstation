@@ -16,6 +16,7 @@ var Schema = mongoose.Schema
 var Reading = new Schema({
     date : { type: Date, default: Date.now }
   , humidity : Number
+  , temperature: Number
 });
 var ReadingModel =  mongoose.model('Reading', Reading);
 // database setup end
@@ -52,8 +53,10 @@ sio.sockets.on('connection', function (socket) {
 
 function handleReading(data) {
     var humidity = data.humidity;
+    var temperature = data.temperature;
     var reading = new ReadingModel(data);
     sio.sockets.emit('humidity', { value: humidity });
+    sio.sockets.emit('temperature', { value: temperature });
     reading.save()
 }
 
@@ -62,10 +65,12 @@ port.on('data', function(data) {
     // console.log(totaldata);
     if (totaldata.charAt(totaldata.length-1) == '\n') {
 	try {
+	    dataitems = totaldata.split(',');
 	    var time = Date.now();
-	    var humidity = parseFloat(totaldata);
+	    var humidity = parseFloat(dataitems[0]);
+	    var temperature = parseFloat(dataitems[2]);
 	    if (!isNaN(humidity)) {
-		var reading = { humidity : humidity, date : time};
+		var reading = { humidity : humidity, temperature: temperature, date : time};
 		console.log(reading);
 		handleReading(reading);
 	    }

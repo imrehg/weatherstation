@@ -8,7 +8,7 @@
     <script language="javascript" type="text/javascript" src="/js/jquery.flot.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-      #value {
+      .value {
        font-weight: bolder;
       }
       #valuediv {
@@ -19,16 +19,19 @@
     <body>
     <h1>Humidity monitor</h1>
 
-    <div id="valuediv">Current humidity: <span id="value"></span></div>
+    <div id="valuediv">Current humidity: <span id="value" class="value"></span></div>
 
     <div id="placeholder" style="width:600px;height:300px;"></div>
+
+    <div id="tempvaluediv">Current temperature: <span id="tempvalue" class="value"></span></div>
+    <div id="tempplot" style="width:600px;height:300px;"></div>
 
 <script type="text/javascript">
 $(function () {
 
     var socket = io.connect();
 
-    var data = [], totalPoints = 300*25;
+    var humdata = [], tempdata = [], data=[], store=[], totalPoints = 300*25;
 
     // setup plot
     var options = {
@@ -38,33 +41,47 @@ $(function () {
     };
     var plot = $.plot($("#placeholder"), [ [0, 0] ], options);
 
-    function storeData(val) {
-        if (data.length > 0) {
-            data = data.slice(1);
+    var options = {
+        series: { shadowSize: 0 }, // drawing is faster without shadows
+        yaxis: { min: 15, max: 30 },
+        xaxis: { min: 0, max: totalPoints/5.0/60, label: "time" }
+    };
+    var tempplot = $.plot($("#tempplot"), [ [0, 0] ], options);
+
+    function storeData(store, val) {
+        if (store.length > 0) {
+            store.shift()
         } else {
         } 
 
-        while (data.length < totalPoints) {
-            var prev = data.length > 0 ? data[data.length - 1] : 0;
-            data.push(prev);
+        while (store.length < totalPoints) {
+            var prev = data.length > 0 ? store[store.length - 1] : 0;
+            store.push(prev);
         }
-        data.push(val);
+        store.push(val);
 
         // zip the generated y values with the x values
         var res = [];
-        for (var i = 0; i < data.length; ++i)
-            res.push([i/5.0/60, data[i]])
+        for (var i = 0; i < store.length; ++i)
+            res.push([i/5.0/60, store[i]])
         return res;
     }
-
 
     var value = document.getElementById('value');
     socket.on('humidity', function (data) {
     	var hum = data.value;
         value.innerHTML = hum+"%";
         document.title = hum+"%";
-    	plot.setData([ storeData(hum) ]);
+    	plot.setData([ storeData(humdata, hum) ]);
         plot.draw();
+    });
+
+    var tempvalue = document.getElementById('tempvalue');
+    socket.on('temperature', function (data) {
+    	var temp = data.value;
+        tempvalue.innerHTML = temp+"℃";
+    	tempplot.setData([ storeData(tempdata, temp) ]);
+        tempplot.draw();
     });
 
 });
