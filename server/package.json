@@ -6,10 +6,11 @@
     "email": "imrehg@gmail.com"
   },
   "dependencies": {
-    "ejs":       "0.7.2"
-  , "express":   "2.5.10"
-  , "socket.io": "0.9.5"
+    "ejs":       "0.8.3"
+  , "express":   "3.0.0rc5"
+  , "socket.io": "0.9.10"
   , "serialport2": "0.0.5"
-  , "mongoose": "2.7.0"
+  , "mongoose": "3.3.1"
+  , "nconf": "0.6.4"
   }
 }

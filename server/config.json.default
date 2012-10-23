@@ -1,0 +1,5 @@
+{
+    "mongos": "localhost:27017,otherhost:27017",
+    "replicaset": "rs0",
+    "database": "weather"
+}
