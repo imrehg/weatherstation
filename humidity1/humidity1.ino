@@ -23,7 +23,9 @@ unsigned long deltat;
 
 void setup() {
   Serial.begin(115200);
-  Serial.println(F("Humidity sensor"));
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for Leonardo only
+  }
   pinMode(VCCPin, OUTPUT);
   t = micros();
 }
@@ -51,6 +53,7 @@ void loop() {
         digitalWrite(VCCPin, HIGH);
         
         hum = GetHumidity(res, temp);
+        Serial.print("H,");  // Device identifier
         Serial.print(hum);
         Serial.print(",");
         Serial.print(res);
