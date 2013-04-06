@@ -1,24 +1,26 @@
 #include <limits.h>  // For ULONG_MAX
 
-static const int VCCPin = 9;
-static const int analogPin = 0;
-static const int tempPin = 4;
-static const float Re = 50.3; // kOhm
-//static const float Vref = 5.0 * 15 / (15 + 51);
-static const float Vref = 5.0;
-static const float Vm = 2.5;
+static const int VCCPin = 9;  // Digital, Power pin to drive the 1kHz square wave
+static const int humidityPin = 0;  // Analog, Humidity sensor reading pin
+static const int tempPin = 4;  // Analog, Temperature sensor reading pin
 
+static const float Re = 50.3;  // Reference resistor R1, kOhm, measured
+static const float Vref = 5.0;  // Voltage high reference (Vcc high)
+static const float Vm = 2.5;  // Voltage middle reference (capacitors are charged to this on average)
 
+// Fitted parameters for Resitance->Humidity conversion of CM-R
+// at 25C
 static float a = 2.76366367;
 static float b = -32.40924966;
 static float c = 102.93566686;
 
+// Helper variables
 int val = 0;
 int count = 0;
 unsigned long t;
 boolean level = LOW;
 unsigned long nowt;
-static unsigned long microwait = 500;
+static unsigned long microwait = 500;  // Half length of 1kHz period in microsecond
 unsigned long deltat;
 
 void setup() {
@@ -31,8 +33,9 @@ void setup() {
 }
 
 void loop() {
-  float temp, hum, res;
-  
+  float temperature, humidity, resistance;
+
+  // Get the elapsed time
   nowt = micros();
   if (nowt >= t) {
     deltat = nowt - t;
@@ -41,62 +44,70 @@ void loop() {
     // Taking care of micros overflow that should happen every 70 minutes or so
     deltat = ULONG_MAX - t + nowt;
   }
+
+  // If half a period is elapsed, switch the output level of VCC to get the square wave
   if (deltat > microwait) {
     digitalWrite(VCCPin, level);
     if (level == HIGH) {
-      if (count == 400) {
-        res = GetResistance();
+      // After every this many switching, do a weather reading
+      // count set empirically to approx. 1 times every second (Leonardo)
+      if (count == 935) {
+
+        // Read resistor value
+        resistance = GetResistance();
 
         digitalWrite(VCCPin, LOW);
         delay(50);
-        temp = GetTemperature();
+        temperature = GetTemperature();
         digitalWrite(VCCPin, HIGH);
-        
-        hum = GetHumidity(res, temp);
-        Serial.print("H,");  // Device identifier
-        Serial.print(hum);
+
+        // Do the conversion from resistance->humidity
+        humidity = GetHumidity(resistance);
+
+        // Send data over the serial connection
+        Serial.print("H,");  // Device identifier message header
+        Serial.print(humidity);
         Serial.print(",");
-        Serial.print(res);
+        Serial.print(resistance);
         Serial.print(",");
-        Serial.print(temp);
+        Serial.print(temperature);
         Serial.println();
-        count = 0;
+        count = 0;  // restart counter
       } else {
-        count++; 
+        count++;  // count up till have to measure values again
       }
     }
-    level = !level;
+    level = !level;  // switch the levels
     t = nowt;
   }  
 }
 
 // Output resistance in kOhm
 float GetResistance(void) {
-  float resistance, volt;
+  float resistance, voltage;
   int val;
   
-  val = analogRead(analogPin);
-  volt = val * 5.0 / 1024;
+  val = analogRead(humidityPin);
+  voltage = val * 5.0 / 1024;
 
-  if (volt < Vm) {
+  if (voltage < Vm) {
     resistance = -1;
   } 
-  else if (volt > Vref) {
+  else if (voltage > Vref) {
     resistance = -2;
   } 
   else {
     // if in range, calculate resistance value
-    resistance = Re / ((Vref-Vm)/(volt-Vm) - 1);
+    resistance = Re / ((Vref-Vm)/(voltage-Vm) - 1);
   }
   return (resistance); 
 }
 
-// Rewrite these into two functions so can retrive the resistance
-// separately and use temperature to get correct value;
-float GetHumidity(float resistance, float temperature) {
+// Convert resistance value into humidity value using the polinomial parameters
+float GetHumidity(float resistance) {
   float humidity;
   
-  if (resistance < 0) {
+  if (resistance <= 0) {
      // this means there was some error in the resistance measurement
      if (resistance == -1) {
        humidity = 0.0;
@@ -107,21 +118,28 @@ float GetHumidity(float resistance, float temperature) {
      }
   }
   else {
+    // positive resistance reading
     float reslog = log10(resistance);
     humidity = a * reslog*reslog + b * reslog + c;
+
+    // set limits correctly
     if (humidity > 100.0) {
       humidity = 100.0;
     } 
     else if (humidity < 0.0) {
       humidity = 0.0;
     }
+
   }
   return (humidity);
 }
 
+// Temperature reading from voltage and LM335 conversion factor
 float GetTemperature(void) {
-  float temperature;
-  temperature = analogRead(tempPin) * 5.0 / 1024.0 / 0.01;
+  float temperature, voltage;
+  voltage = analogRead(tempPin) * 5.0 / 1024.0;
+  // LM335 has 10mV/K conversion
+  temperature = voltage / 0.01;
   return (temperature);
 }
 
