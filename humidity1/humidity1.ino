@@ -100,6 +100,9 @@ float GetResistance(void) {
     // if in range, calculate resistance value
     resistance = Re / ((Vref-Vm)/(voltage-Vm) - 1);
   }
+  // Empirical adjustment for the 1/s repetition rate
+  // because of the decay of capacitors during measurement
+  resistance = resistance / 0.9;
   return (resistance); 
 }
 
